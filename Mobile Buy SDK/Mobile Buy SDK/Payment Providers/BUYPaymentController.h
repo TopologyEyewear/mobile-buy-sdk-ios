@@ -60,12 +60,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (id <BUYPaymentProvider> _Nullable)providerForType:(NSString *)type;
 
 /**
- *  Start a checkout
+ *  Start a checkout with email
  *
  *  @param checkout the `BUYCheckout` to start
+ *  @param email user's email
  *  @param typeIdentifier     the type of payment provider to use
  */
-- (void)startCheckout:(BUYCheckout *)checkout withProviderType:(NSString *)typeIdentifier;
+- (void)startCheckout:(BUYCheckout *)checkout withProviderType:(NSString *)typeIdentifier email:(nullable NSString*)email;
 
 @end
 

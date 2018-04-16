@@ -108,15 +108,20 @@ static NSString *const WebCheckoutCustomerAccessToken = @"customer_access_token"
 #pragma mark - Checkout -
 
 - (void)startCheckout:(BUYCheckout *)checkout
-{	
+{
+	[self startCheckout: checkout email: nil];
+}
+
+- (void)startCheckout:(BUYCheckout *)checkout email:(NSString *)email
+{
 	if (self.isInProgress && ![checkout.token isEqual:self.checkout.token]) {
 		[[NSException exceptionWithName:NSInternalInconsistencyException reason:[NSString stringWithFormat:@"Asked to start checkout; but checkout has already started in %@", self] userInfo:nil] raise];
 	}
-	
+
 	self.checkout = checkout;
-	
+
 	[self.client updateOrCreateCheckout:checkout completion:^(BUYCheckout *checkout, NSError *error) {
-		[self postCheckoutCompletion:checkout error:error];
+		[self postCheckoutCompletion:checkout email:email error:error];
 	}];
 }
 
@@ -128,16 +133,16 @@ static NSString *const WebCheckoutCustomerAccessToken = @"customer_access_token"
 - (void)cancelCheckoutAndNotify
 {
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:BUYSafariCallbackURLNotification object:nil];
-	
+
 	if ([self.delegate respondsToSelector:@selector(paymentProviderDidDismissCheckout:)]) {
 		[self.delegate paymentProviderDidDismissCheckout:self];
 	}
 	[[NSNotificationCenter defaultCenter] postNotificationName:BUYPaymentProviderDidDismissCheckoutNotificationKey object:self];
-	
+
 	self.checkout = nil;
 }
 
-- (void)postCheckoutCompletion:(BUYCheckout *)checkout error:(NSError *)error
+- (void)postCheckoutCompletion:(BUYCheckout *)checkout email:(NSString *)email error:(NSError *)error
 {
 	if (self.checkout && error == nil) {
 		self.checkout = checkout;
@@ -146,24 +151,34 @@ static NSString *const WebCheckoutCustomerAccessToken = @"customer_access_token"
 			[self.delegate paymentProviderWillStartCheckout:self];
 		}
 		[[NSNotificationCenter defaultCenter] postNotificationName:BUYPaymentProviderWillStartCheckoutNotificationKey object:self];
-		
+
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(didReceiveCallbackURLNotification:) name:BUYSafariCallbackURLNotification object:nil];
-		
-		[self openWebCheckout:checkout];
+
+		[self openWebCheckout:checkout email:email];
 	}
 	else {
 		if ([self.delegate respondsToSelector:@selector(paymentProvider:didFailWithError:)]) {
 			[self.delegate paymentProvider:self didFailWithError:error];
 		}
 		[[NSNotificationCenter defaultCenter] postNotificationName:BUYPaymentProviderDidFailCheckoutNotificationKey object:self];
-		
+
 		self.checkout = nil;
 	}
 }
 
-- (void)openWebCheckout:(BUYCheckout *)checkout
+- (void)openWebCheckout:(BUYCheckout *)checkout email:(NSString *)email
 {
-	NSURL *checkoutURL = [self authenticatedWebCheckoutURL:checkout.webCheckoutURL];
+	NSURL *originalCheckoutURL = checkout.webCheckoutURL;
+
+	NSURL *checkoutURL;
+	if (email == nil) {
+		checkoutURL = [self authenticatedWebCheckoutURL:originalCheckoutURL];
+	} else {
+		NSURLComponents *components = [[NSURLComponents alloc] initWithString:originalCheckoutURL.absoluteString];
+		components.query = [NSString stringWithFormat:@"checkout[email]=%@", email];
+		checkoutURL = [self authenticatedWebCheckoutURL:components.URL];
+	}
+
 	if (SafariViewControllerClass) {
 
 		SFSafariViewController *safariViewController;
@@ -174,7 +189,7 @@ static NSString *const WebCheckoutCustomerAccessToken = @"customer_access_token"
 			SFSafariViewControllerConfiguration *configuration = [[SFSafariViewControllerConfiguration alloc] init];
 			configuration.barCollapsingEnabled = NO;
 			safariViewController = [[SFSafariViewController alloc] initWithURL:checkoutURL
-																 configuration:configuration];
+																													 configuration:configuration];
 		} else {
 			safariViewController = [[SFSafariViewController alloc] initWithURL:checkoutURL];
 		}

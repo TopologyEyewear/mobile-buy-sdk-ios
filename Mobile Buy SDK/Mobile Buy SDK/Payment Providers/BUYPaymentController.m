@@ -61,10 +61,10 @@ NSString *const BUYPaymentProviderDidCompleteCheckoutNotificationKey = @"BUYPaym
 
 #pragma mark - Tasks -
 
-- (void)startCheckout:(BUYCheckout *)checkout withProviderType:(NSString *)typeIdentifier;
+- (void)startCheckout:(BUYCheckout *)checkout withProviderType:(NSString *)typeIdentifier email:(NSString *)email;
 {
 	id <BUYPaymentProvider> provider = [self providerForType:typeIdentifier];
-	[provider startCheckout:checkout];
+	[provider startCheckout:checkout email:email];
 }
 
 - (void)addPaymentProvider:(id <BUYPaymentProvider>)paymentProvider

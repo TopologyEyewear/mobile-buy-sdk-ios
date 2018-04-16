@@ -152,6 +152,16 @@ extern NSString *const BUYPaymentProviderDidCompleteCheckoutNotificationKey;
  */
 @property (nonatomic, weak) id <BUYPaymentProviderDelegate> delegate;
 
+@optional
+
+/**
+ *  Starts the checkout process
+ *
+ *  @param email the user's previously provided email address
+ *  @param checkout the `BUYCheckout`
+ */
+- (void)startCheckout:(BUYCheckout *)checkout email:(nullable NSString *)email;
+
 @end
 
 NS_ASSUME_NONNULL_END
